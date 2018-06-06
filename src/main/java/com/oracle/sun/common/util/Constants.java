@@ -7,4 +7,5 @@ public class Constants {
 	
 	public static String BASEPROPERTY="/src/main/resource/params.properties";
 	
+	
 }

@@ -1,32 +1,9 @@
-package com.oracle.sun.utils;
+package com.oracle.sun.utils.file.one;
 
 import java.io.File;
 import java.io.IOException;
 
 public class FileUtil {
-
-    /**
-     * 查找文件夹下是否有"Impl" 文件夹,如果没有 创建该文件夹;如果有返回改子文件夹
-     * @param targetDir 文件夹
-     * @param dirName 子文件夹的名称
-     * @return 子文件夹路径
-     */
-    public static File createDirIfnone(File targetDir,String dirName ){
-      // 检查impl目录是否村子啊，若不存在则创建该目录
-        File dir = null;
-        for( File temp : targetDir.listFiles()){
-            if( temp != null && dirName.equals(temp.getName())){
-                dir = temp;
-                break;
-            }
-        }
-        if( dir == null ){
-            dir = new File(targetDir,dirName);
-            dir.mkdir();
-        }
-        return dir;
-    }
-    //创建文件  如果没有
 
     //判断文件/夹是否已经存在
     /**
