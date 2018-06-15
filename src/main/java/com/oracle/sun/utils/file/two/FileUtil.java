@@ -6,6 +6,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 public class FileUtil {
 	
@@ -30,44 +32,84 @@ public class FileUtil {
         }
         return dir;
     }
-	
-	/**
-	 * 将一个文件夹下的内容复制到另一个文件夹下
-	 * @param srcFile	源目录
-	 * @param desFile	目标目录
-	 * @throws IOException
-	 */
-	 protected static void copyFolder(File srcFile, File desFile) throws IOException  {
-         if(srcFile.isDirectory()) {
-             //是文件夹,首先在目标位置创建同名文件夹，然后遍历文件夹下的文件，进行递归调用copyFolder函数
-             File newFolder = new File(desFile, srcFile.getName());
-             newFolder.mkdir();
-             File[] fileArray = srcFile.listFiles();
-             for(File file : fileArray) {
-                 copyFolder(file, newFolder);
-             }
-         }else{
-             //是文件，直接copy到目标文件夹
-             File newFile = new File(desFile, srcFile.getName());
-             copyFile(srcFile, newFile);
-         }
-     }
-	 /**
-	  * 流的形式复制文件
-	  * @param srcFile	源文件
-	  * @param newFile	目标文件
-	  * @throws IOException
-	  */
-     protected static void copyFile(File srcFile, File newFile) throws IOException {
-         //复制文件到指定位置
-         BufferedInputStream bis = new BufferedInputStream(new FileInputStream(srcFile));
-         BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(newFile));
-         byte[] b = new byte[1024];
-         Integer len = 0;
-         while((len = bis.read(b)) != -1) {
-             bos.write(b, 0, len);
-         }
-         bis.close();
-         bos.close();
-     }
+
+     /**
+     * @Description 流的形式复制文件
+     * 返回类型 void
+     * @param srcFile	源文件
+	 * @param newFile	目标文件
+     * @throws IOException
+     * @注
+     */
+     protected static void copyFileByStreams(File srcFile, File newFile) throws IOException {
+ 		InputStream input = null;    
+ 	    OutputStream output = null;  
+ 	    try {
+ 	    	 //复制文件到指定位置
+ 	    	 input = new BufferedInputStream(new FileInputStream(srcFile));
+ 	    	 output = new BufferedOutputStream(new FileOutputStream(newFile));
+ 	         byte[] b = new byte[1024];
+ 	         Integer len = 0;
+ 	         while((len = input.read(b)) != -1) {
+ 	        	output.write(b, 0, len);
+ 	         }
+ 	           
+ 		}finally {
+ 			try {
+ 				input.close();
+ 				output.close();
+ 			} catch (Exception e) {
+ 				e.printStackTrace();
+ 			}
+ 			
+ 	    }
+ 	}
+   
+     /**
+ 	* @Description:将文件或着文件夹复制到另一个文件夹中去
+ 	* @author sun
+ 	* @date  2018年6月8日 上午11:10:27
+ 	* @param sourceFile	源，文件夹或者文件
+ 	* @param dest	目标路径，必须是文件夹；如果source是文件则自动创建此文件
+ 	* @throws IOException
+ 	 */
+     protected static void copyFolder(File sourceFile, File dest) throws IOException{
+ 		File destFile=new File(dest,sourceFile.getName());
+ 		
+ 		if(sourceFile.isFile()) {
+ 			destFile.createNewFile();
+ 			copyFileByStreams(sourceFile,destFile);
+ 		}else if(sourceFile.isDirectory()) {
+ 			destFile.mkdir();
+ 			File[] fileArray = sourceFile.listFiles();
+ 			for (File file : fileArray) {
+ 				/*如果source是文件夹，那么dest只能是文件夹
+ 				 * 如果source是文件，那么dest最好是文件
+ 				 */
+ 				copyFolder(file,destFile);
+ 			}
+ 		}
+ 	}
+ 	/**
+ 	* @Description:将文件复制到另一个文件或着文件夹下的内容复制到另一个文件夹中去
+ 	* @date  2018年6月8日 上午11:45:04
+ 	* @param sourceFile	源，文件夹或者文件
+ 	* @param destFile	目标，文件夹或者文件
+ 	* @throws IOException
+ 	* @注	如果source是文件，dest必须要是文件
+ 	 */
+ 	protected static void copyFiles(File sourceFile, File destFile) throws IOException{
+ 		if(sourceFile.isFile()) {
+ 			destFile.createNewFile();
+ 			copyFileByStreams(sourceFile,destFile);
+ 		}else if(sourceFile.isDirectory()) {
+ 			destFile.mkdir();
+ 			File[] fileArray = sourceFile.listFiles();
+ 			for (File file2 : fileArray) {
+ 				copyFiles(file2,new File(destFile+file2.getName()));
+ 			}
+ 		}
+ 	}
+ 	
+ 	
 }
