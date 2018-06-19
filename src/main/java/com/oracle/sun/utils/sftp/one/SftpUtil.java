@@ -38,7 +38,7 @@ public class SftpUtil {
     /**
      * 文件路径前缀. /ddit-remote
      */
-    private static final String PRE_FIX = "/test-noryar";
+  //  private static final String PRE_FIX = "/test-noryar";
 
     /**
      * sftp连接池.
@@ -88,13 +88,29 @@ public class SftpUtil {
         return sftp;
     }
 
-    public static Boolean download(final File srcFile, final File localdst, final ChannelSftp sftp) throws Exception {
+    /**
+     * 下载文件夹 ---不好实现
+     * @Description
+     * 返回类型 Boolean
+     * @param srcFile
+     * @param localdst
+     * @param sftp
+     * @return
+     * @throws Exception
+     * @注
+     */
+    public static Boolean download(final String srcPath, final File localdst, final ChannelSftp sftp) throws Exception {
     	FileOutputStream os = null;
     	os = new FileOutputStream(localdst);
        // List<String> list = formatPath(downloadFile.getAbsolutePath());
         
        // sftp.get(list.get(0) + list.get(1), os);
     	
+    	if(dirExist(srcPath, sftp)) {
+    		List<String> list = formatPath(srcPath);
+    		Vector files = sftp.ls(srcPath);
+    		//TODO 不会
+    	}
     	return false;
     }
     
@@ -152,72 +168,11 @@ public class SftpUtil {
         return os.toByteArray();
     }
 
-    /**
-     * 删除文件-sftp协议.
-     * @param pathString 要删除的文件
-     * @param sftp sftp连接
-     * @throws SftpException 异常
-     */
-    public static void rmFile(final String pathString, final ChannelSftp sftp) throws SftpException {
-        List<String> list = formatPath(pathString);
-        String dir = list.get(0);
-        String file = list.get(1);
-        if (dirExist(dir + file, sftp)) {
-            sftp.rm(list.get(0) + list.get(1));
-        }
-    }
-
-    /**
-     * 删除文件夹-sftp协议.如果文件夹有内容，则会抛出异常.
-     * @param pathString 文件夹路径
-     * @param sftp sftp连接
-     * @param resursion 递归删除
-     * @throws SftpException 异常
-     */
-    public static void rmDir(final String pathString, final ChannelSftp sftp, final boolean recursion)
-            throws SftpException {
-        String fp = formatPath(pathString).get(0);
-        if (dirExist(fp, sftp)) {
-            if (recursion)
-                exeRmRec(fp, sftp);
-            else
-                sftp.rmdir(fp);
-        }
-    }
-
-    /**
-     * 递归删除执行.
-     * @param pathString 文件路径
-     * @param sftp sftp连接
-     * @throws SftpException
-     */
-    private static void exeRmRec(final String pathString, final ChannelSftp sftp) throws SftpException {
-        @SuppressWarnings("unchecked")
-        Vector<LsEntry> vector = sftp.ls(pathString);
-        if (vector.size() == 1) { // 文件，直接删除
-            sftp.rm(pathString);
-        } else if (vector.size() == 2) { // 空文件夹，直接删除
-            sftp.rmdir(pathString);
-        } else {
-            String fileName = "";
-            // 删除文件夹下所有文件
-            for (LsEntry en : vector) {
-                fileName = en.getFilename();
-                if (".".equals(fileName) || "..".equals(fileName)) {
-                    continue;
-                } else {
-                    exeRmRec(pathString + "/" + fileName, sftp);
-                }
-            }
-            // 删除文件夹
-            sftp.rmdir(pathString);
-        }
-    }
 
     /**
      * 上传文件-sftp协议.
      * @param srcFile 源文件	必须是文件啊
-     * @param dir 保存路径		需要/开头和结尾
+     * @param dir 保存路径（Linux）	需要/开头和结尾
      * @param fileName 保存文件名
      * @param sftp sftp连接
      * @throws Exception 异常
@@ -225,18 +180,12 @@ public class SftpUtil {
     public static void uploadFile(final String srcFile, final String dir, final String fileName, final ChannelSftp sftp)
             throws SftpException {
     	if(dir!=null) {
-    		String md = dir.replaceAll("\\\\", "/").trim();
-            if (md.startsWith("/")&& md.length()>1) {
-            	 md=md.endsWith("/")?md:md+"/";
-                 
-                 mkdir(md, sftp); //可以递归
-                 sftp.cd(md);
-                 sftp.put(srcFile, fileName);
-                 // sftp.put(srcFile, new String(fileName.getBytes(),"UTF-8"));  //中文名称的  
-                 //sftp.setFilenameEncoding("UTF-8");  
-            }else {
-            	System.out.println("Linux路径空");
-            }
+        	 String md =formatPathLinux(dir); //格式化了Linux路径
+        	 mkdirs(md, sftp); //可以递归
+             sftp.cd(md);
+             sftp.put(srcFile, fileName);
+             // sftp.put(srcFile, new String(fileName.getBytes(),"UTF-8"));  //中文名称的  
+             //sftp.setFilenameEncoding("UTF-8");  
     	}else {
     		System.out.println("Linux路径空");
     	}
@@ -275,37 +224,11 @@ public class SftpUtil {
          } 
     }
 
+    
     /**
-     * 上传文件-sftp协议.
-     * @param srcFile 源文件路径，/xxx/xx.yy 或 x:/xxx/xxx.yy
-     * @param sftp sftp连接
-     * @return 上传成功与否
-     * @throws SftpException 异常
-     */
-    public static boolean uploadFile(final String srcFile, final ChannelSftp sftp) throws SftpException {
-        File file = new File(srcFile);
-        if (file.exists()) {
-            List<String> list = formatPath(srcFile);
-            uploadFile(srcFile, list.get(0), list.get(1), sftp);
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * 根据路径创建文件夹.
-     * @param dir 路径 必须是 /xxx/xxx/ 不能就单独一个/
-     * @param sftp sftp连接
-     * @throws SftpException 异常
-     */
-    public static boolean mkdir(final String dir, final ChannelSftp sftp) throws SftpException {
-    	
-        return mkdirs(dir, sftp);
-    }
-
-    /**
+     * OK
      * 递归创建文件夹.
-     * @param dir 路径
+     * @param dir 路径 必须是 /xxx/xxx/ 不能就单独一个/
      * @param sftp sftp连接
      * @return 是否创建成功
      * @throws SftpException 异常
@@ -326,6 +249,7 @@ public class SftpUtil {
     }
 
     /**
+     * OK
      * 判断文件夹是否存在.
      * @param dir 文件夹路径， /xxx/xxx/
      * @param sftp sftp协议
@@ -343,24 +267,148 @@ public class SftpUtil {
         }
     }
 
+
     /**
-     * 格式化路径.
-     * @param srcPath 原路径. /xxx/xxx/xxx.yyy 或 X:/xxx/xxx/xxx.yy
-     * @return list, 第一个是路径（/xxx/xxx/）,第二个是文件名（xxx.yy）
+     * 删除文件-sftp协议.
+     * @param pathString 要删除的文件
+     * @param sftp sftp连接
+     * @throws SftpException 异常
      */
-    public static List<String> formatPath(final String srcPath) {
-        List<String> list = new ArrayList<String>(2);
-        String repSrc = srcPath.replaceAll("\\\\", "/");
-        int firstP = repSrc.indexOf("/");
-        int lastP = repSrc.lastIndexOf("/");
-        String fileName = lastP + 1 == repSrc.length() ? "" : repSrc.substring(lastP + 1);
-        String dir = firstP == -1 ? "" : repSrc.substring(firstP, lastP);
-        dir = PRE_FIX + (dir.length() == 1 ? dir : (dir + "/"));
-        list.add(dir);
-        list.add(fileName);
-        return list;
+    public static void rmFile(final String srcPath, final ChannelSftp sftp) throws SftpException {
+        String path = srcPath.replaceAll("\\\\", "/").trim();
+        if (dirExist(path, sftp)) {
+            sftp.rm(path);
+        }
     }
 
+    /**
+     * 删除文件夹-sftp协议.如果文件夹有内容，则会抛出异常.
+     * @param pathString 文件夹路径
+     * @param sftp sftp连接
+     * @param resursion 递归删除
+     * @throws SftpException 异常
+     */
+    public static void rmDir(final String pathString, final ChannelSftp sftp, final boolean recursion)
+            throws SftpException {
+        String fp = formatPathLinux(pathString);
+        if (dirExist(fp, sftp)) {
+            if (recursion)
+                exeRmRec(fp, sftp);
+            else
+                sftp.rmdir(fp);
+        }
+    }
+
+    /**
+     * 删除文件夹下的所有文件
+     * @Description
+     * 返回类型 void
+     * @param pathString
+     * @param sftp
+     * @throws SftpException
+     * @注
+     */
+    public static void rmDirFile(final String pathString, final ChannelSftp sftp  )
+            throws SftpException {
+    	 Vector<LsEntry> vector = sftp.ls(pathString);
+         if (vector.size() == 1) { // 文件，直接删除
+             sftp.rm(pathString);
+         } else if (vector.size() == 2) { // 空文件夹，直接删除
+           
+         } else {
+             String fileName = "";
+             // 删除文件夹下所有文件
+             for (LsEntry en : vector) {
+                 fileName = en.getFilename();
+                 if (".".equals(fileName) || "..".equals(fileName)) {
+                     continue;
+                 } else {
+                     exeRmRec(pathString + "/" + fileName, sftp);
+                 }
+             }
+             // 删除文件夹
+             sftp.rmdir(pathString);
+         }
+    }
+    /**
+     * OK
+     * 递归删除执行.
+     * @param pathString 文件路径
+     * @param sftp sftp连接
+     * @throws SftpException
+     */
+    private static void exeRmRec(final String pathString, final ChannelSftp sftp) throws SftpException {
+        @SuppressWarnings("unchecked")
+        Vector<LsEntry> vector = sftp.ls(pathString);
+        if (vector.size() == 1) { // 文件，直接删除
+            sftp.rm(pathString);
+        } else if (vector.size() == 2) { // 空文件夹，直接删除
+            sftp.rmdir(pathString);
+        } else {
+            String fileName = "";
+            // 删除文件夹下所有文件
+            for (LsEntry en : vector) {
+                fileName = en.getFilename();
+                if (".".equals(fileName) || "..".equals(fileName)) {
+                    continue;
+                } else {
+                    exeRmRec(pathString + "/" + fileName, sftp);
+                }
+            }
+            // 删除文件夹
+            sftp.rmdir(pathString);
+        }
+    }
+    
+    /**
+     * @Description
+     * 返回类型 List<String>
+     * @param srcPath
+     * @return	将 /xxx\\xxx/xxx 转化为 /xxx/xxx/xxx/
+     * @注
+     */
+    private static String formatPathLinux(String srcPath) {
+    	String path = srcPath.replaceAll("\\\\", "/").trim();
+    	 int pl=path.length();
+    	 if (path.startsWith("/")) {
+    		  if (pl>1) {
+    			  path = path.endsWith("/") ? path : path+"/";
+	 		  }else {
+	 			  System.out.println("Linux路径至跟目录");
+	 			  path="/";
+	 		  }
+    	 }else {
+    		 path="/";
+    		 System.out.println("Linux路径有问题，默认至跟目录");
+    	 }
+    	 return path;
+    }
+    
+    private static List<String> formatPath(String srcPath) {
+    	  List<String> list = new ArrayList<String>(2);
+    	  
+    	  if(srcPath.trim().length()>3) {
+	          File file=new File(srcPath);
+	          String name=file.getName();	//文件名称
+	          
+	      	  String parentPath=file.getParent();//文件所在目录
+	      	  int pl=parentPath.length();
+	      		  parentPath = parentPath.replaceAll("\\\\", "/");
+	      		  if(pl>1) {
+	      			  parentPath = parentPath.startsWith("/") ? "/"+parentPath : parentPath;
+	      			  parentPath = parentPath.endsWith("/") ? parentPath : parentPath+"/";
+	      		  }else if(pl==1) {
+	      			  parentPath="/";
+	      		  }else {
+	      			  System.out.println("Linux路径有问题，默认至跟目录");
+	      			  parentPath="/";
+	      		  }
+	      		  list.add(parentPath);
+	      		  list.add(name);
+      	  }
+          return list;
+    }
+   
     /**
      * 关闭协议-sftp协议.(关闭会导致连接池异常，因此不建议用户自定义关闭)
      * @param sftp sftp连接
@@ -379,7 +427,7 @@ public class SftpUtil {
     	 ChannelSftp sftp = SftpUtil.getSftpConnect("59.110.224.8", 22, "root", "sjc@7ZXJPDZ");
          String pathString = "D:\\sunjinchao\\垃圾箱/new33.txt";
          System.out.println("上传文件开始...");
-         uploadFile(pathString, sftp);
+        // uploadFile(pathString,"/test-noryar", sftp);
     	// File file = new File(pathString);
         // System.out.println("上传成功，开始删除本地文件...");
         // file.delete();
