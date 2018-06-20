@@ -10,8 +10,28 @@ public class SftpDemo {
 	 //测试
     public static void main(String[] args) throws Exception {
     	//test1();
-    	test2();
+    	//test2();
     	//test3();
+    	downloadDir();
+    }
+    
+    public static void downloadDir() throws Exception {
+    	
+    	 ChannelSftp sftp = SftpUtil.getSftpConnect("59.110.224.8", 22, "root", "sjc@7ZXJPDZ");
+         String dest = "D:\\opt\\qwe";
+         
+         System.out.println("下载文件开始...");
+         //下载文件夹
+         String src = "/usr/games";
+        // SftpUtil.downloadDir(src, dest, sftp);
+         
+         //下载文件
+         String src2 = "/usr/games/sql.zip";
+         String dest3 = "D:\\opt\\qwe/sql.zip";
+         SftpUtil.download(src2, dest3, sftp);
+         
+         SftpUtil.exit(sftp);
+         System.exit(0);
     }
     /**
      * OK

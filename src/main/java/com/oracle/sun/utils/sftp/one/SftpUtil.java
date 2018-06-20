@@ -34,12 +34,6 @@ import com.jcraft.jsch.SftpException;
  * 
  */
 public class SftpUtil {
-
-    /**
-     * 文件路径前缀. /ddit-remote
-     */
-  //  private static final String PRE_FIX = "/test-noryar";
-
     /**
      * sftp连接池.
      */
@@ -89,7 +83,7 @@ public class SftpUtil {
     }
 
     /**
-     * 下载文件夹 ---不好实现
+     * 下载文件夹 
      * @Description
      * 返回类型 Boolean
      * @param srcFile
@@ -97,23 +91,71 @@ public class SftpUtil {
      * @param sftp
      * @return
      * @throws Exception
-     * @注
+     * @注	
      */
-    public static Boolean download(final String srcPath, final File localdst, final ChannelSftp sftp) throws Exception {
-    	FileOutputStream os = null;
-    	os = new FileOutputStream(localdst);
-       // List<String> list = formatPath(downloadFile.getAbsolutePath());
+    public static Boolean downloadDir(final String srcPath, final String localdst, final ChannelSftp sftp) throws Exception {
+        File destFile=new File(localdst);
+        if(localdst.contains(".")) {
+        	destFile.createNewFile();
+        }else {
+        	destFile.mkdir();
+        }
         
-       // sftp.get(list.get(0) + list.get(1), os);
-    	
     	if(dirExist(srcPath, sftp)) {
-    		List<String> list = formatPath(srcPath);
-    		Vector files = sftp.ls(srcPath);
-    		//TODO 不会
+    		//List<String> list = formatPath(srcPath);
+    		String pathString=srcPath;
+            Vector<LsEntry> vector = sftp.ls(pathString);
+            if (vector.size() == 1) { // 文件，
+            	download(pathString,localdst,sftp);
+            } else if (vector.size() == 2) { // 空文件夹，
+                System.out.println("空文件夹");
+            } else {
+                // 删除文件夹下所有文件
+                for (LsEntry en : vector) {
+                	String  fileName = en.getFilename();
+                    if (".".equals(fileName) || "..".equals(fileName)) {
+                        continue;
+                    } else {
+                    	downloadDir(pathString + "/" + fileName,localdst+"/"+fileName, sftp);
+                    }
+                }
+            }
     	}
     	return false;
     }
     
+    /**
+     * 下载文件-sftp协议.
+     * @param downloadFile 下载的文件
+     * @param saveFile 存在本地的路径 包括文件名
+     * @param sftp sftp连接
+     * @return 文件
+     * @throws Exception 异常
+     */
+    protected static File download(final String downloadFile, final String saveFile,final ChannelSftp sftp) throws Exception {
+        FileOutputStream os = null;
+        File file = new File(saveFile);
+        try {
+            if (!file.exists()) {
+                File parentFile = file.getParentFile();
+                if (!parentFile.exists()) {
+                    parentFile.mkdirs();
+                }
+                file.createNewFile();
+            }
+            os = new FileOutputStream(file);
+            List<String> list = formatPath(downloadFile);
+            
+            sftp.get(list.get(0) + list.get(1), os);
+            
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            os.close();
+        }
+        return file;
+    }
+   
     /**
      * 下载文件-sftp协议.
      * @param downloadFile 下载的文件
@@ -122,10 +164,10 @@ public class SftpUtil {
      * @return 文件
      * @throws Exception 异常
      */
-    public static File download(final String downloadFile, final String saveFile, final ChannelSftp sftp)
+    protected static File download(final String downloadFile, final String saveFile,final String fileName, final ChannelSftp sftp)
             throws Exception {
         FileOutputStream os = null;
-        File file = new File(saveFile);
+        File file = new File(saveFile,fileName);
         try {
             if (!file.exists()) {
                 File parentFile = file.getParentFile();
@@ -202,29 +244,18 @@ public class SftpUtil {
      */
     public static void uploadFile(File srcFile, String directory, ChannelSftp sftp)
     		throws SftpException, FileNotFoundException, UnsupportedEncodingException {
-    	//File srcFile = new File(srcFile);
     	if(srcFile.isFile()){
-    		/*
-    		System.out.println(srcFile.getAbsolutePath());
-    		System.out.println(directory);
-    		System.out.println(srcFile.getName());
-    		System.out.println("--------");
-    		*/
     		uploadFile(srcFile.getAbsolutePath(), directory, srcFile.getName(),sftp);
          }else if(srcFile.isDirectory()){
              File[] files = srcFile.listFiles();
              for (File file2 : files) {
                  if(file2.isDirectory()){
-                     //String str = dir.substring(dir.lastIndexOf(file2.separator));  
-                     //directory = FileUtil.normalize(directory + str);  
                      directory =directory+"/"+file2.getName();
                  }
                  uploadFile(file2,directory,sftp);  //递归
              }  
          } 
     }
-
-    
     /**
      * OK
      * 递归创建文件夹.
@@ -415,54 +446,5 @@ public class SftpUtil {
      */
     public static void exit(final ChannelSftp sftp) {
         sftp.exit();
-    }
-    
-    //测试
-    public static void main(String[] args) throws Exception {
-    	//test2();
-    	test3();
-    }
-    
-    public void test1() throws Exception {
-    	 ChannelSftp sftp = SftpUtil.getSftpConnect("59.110.224.8", 22, "root", "sjc@7ZXJPDZ");
-         String pathString = "D:\\sunjinchao\\垃圾箱/new33.txt";
-         System.out.println("上传文件开始...");
-        // uploadFile(pathString,"/test-noryar", sftp);
-    	// File file = new File(pathString);
-        // System.out.println("上传成功，开始删除本地文件...");
-        // file.delete();
-        // System.out.println("删除完成，开始校验本地文件...");
-        // if (!file.exists()) {
-        // System.out.println("文件不存在，开始从远程服务器获取...");
-        // download(pathString, pathString, sftp);
-        // System.out.println("下载完成");
-        // } else {
-        // System.out.println("在本地找到文件");
-        // }
-        // rmDir("", sftp, true);
-       // String path = "E:\\aaa.zip";
-       // File file = SftpUtil.download(path, path, sftp);
-        // SftpUtil.exit(sftp);
-        exit(sftp);
-        System.exit(0);
-    }
-    public static void test2() throws Exception {
-    	 ChannelSftp sftp = SftpUtil.getSftpConnect("59.110.224.8", 22, "root", "sjc@7ZXJPDZ");
-         String pathString = "D:\\sunjinchao\\垃圾箱/new33.txt";
-         String dest = "/usr/games";
-         String name = "new33.txt";
-         uploadFile(pathString,dest,dest, sftp);
-         exit(sftp);
-         System.exit(0);
-    }
-    //上传文件
-    public static void test3() throws Exception {
-    	ChannelSftp sftp = SftpUtil.getSftpConnect("59.110.224.8", 22, "root", "sjc@7ZXJPDZ");
-    	String pathString = "D:\\opt\\tomcat-7.0\\webapps\\51Cruise\\WEB-INF";
-    	String dest = "/usr/games";
-    	//String name = "new33.txt";
-    	uploadFile(new File(pathString),dest,sftp);
-    	exit(sftp);
-    	System.exit(0);
     }
 }
