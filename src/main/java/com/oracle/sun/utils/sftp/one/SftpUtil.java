@@ -86,8 +86,8 @@ public class SftpUtil {
      * 下载文件夹 
      * @Description
      * 返回类型 Boolean
-     * @param srcFile
-     * @param localdst
+     * @param srcFile	linux 位置
+     * @param localdst	本地保存位置
      * @param sftp
      * @return
      * @throws Exception
@@ -249,10 +249,14 @@ public class SftpUtil {
          }else if(srcFile.isDirectory()){
              File[] files = srcFile.listFiles();
              for (File file2 : files) {
+            	 //递归
                  if(file2.isDirectory()){
-                     directory =directory+"/"+file2.getName();
+                	 uploadFile(file2,directory+"/"+file2.getName(),sftp);  
+                 }else if(file2.isFile()){
+                	 uploadFile(file2,directory,sftp);  
+                 }else {
+                	 // TODO 应该没有了
                  }
-                 uploadFile(file2,directory,sftp);  //递归
              }  
          } 
     }

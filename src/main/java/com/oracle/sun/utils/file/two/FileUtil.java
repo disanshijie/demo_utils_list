@@ -4,10 +4,13 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URL;
+import java.net.URLConnection;
 
 public class FileUtil {
 	
@@ -106,10 +109,33 @@ public class FileUtil {
  			destFile.mkdir();
  			File[] fileArray = sourceFile.listFiles();
  			for (File file2 : fileArray) {
- 				copyFiles(file2,new File(destFile+file2.getName()));
+ 				copyFiles(file2,new File(destFile,file2.getName()));
  			}
  		}
  	}
  	
- 	
+ 	/**
+ 	 * 下载 url地址文件
+ 	 * 返回类型 String
+ 	 * @param src
+ 	 * @return
+ 	 * @注
+ 	 */
+ 	public static String downloadNet(String src){
+ 		String str="";
+        try {
+        	URL url = new URL(src);
+            URLConnection conn = url.openConnection();
+            InputStream inStream = conn.getInputStream();
+            byte[] buffer = new byte[1204];
+            while ((inStream.read(buffer)) != -1) {
+            	str +=new String(buffer);
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return str;
+    }
 }
