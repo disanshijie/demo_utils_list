@@ -9,6 +9,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLConnection;
 
@@ -137,5 +138,35 @@ public class FileUtil {
             e.printStackTrace();
         }
         return str;
+    }
+ 	
+ 	/**
+ 	 * 读取文件内容，返回字符串格式内容,默认utf-8编码格式
+ 	 * 返回类型 String
+ 	 * @param fileName
+ 	 * @return
+ 	 * @注
+ 	 */
+ 	public String readToString(String fileName) {
+        String encoding = "UTF-8";  
+        File file = new File(fileName);  
+        Long filelength = file.length();  
+        byte[] filecontent = new byte[filelength.intValue()];  
+        try {  
+            FileInputStream in = new FileInputStream(file);  
+            in.read(filecontent);  
+            in.close();  
+        } catch (FileNotFoundException e) {  
+            e.printStackTrace();  
+        } catch (IOException e) {
+            e.printStackTrace();
+        }  
+        try {
+            return new String(filecontent, encoding);  
+        } catch (UnsupportedEncodingException e) {  
+            //System.err.println("The OS does not support " + encoding);  
+            e.printStackTrace();
+            return null;  
+        }  
     }
 }

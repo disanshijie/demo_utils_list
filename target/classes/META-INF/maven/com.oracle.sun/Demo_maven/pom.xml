@@ -43,5 +43,13 @@
 	    <version>2.6</version>
 	 </dependency>
     
+    <!--引用说明 里面有文件操作工具类 -->
+	 <!-- https://mvnrepository.com/artifact/commons-io/commons-io -->
+	<dependency>
+	    <groupId>commons-io</groupId>
+	    <artifactId>commons-io</artifactId>
+	    <version>2.6</version>
+	</dependency>
+    
   </dependencies>
 </project>
